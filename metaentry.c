@@ -25,7 +25,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __MACH__
+#include <sys/xattr.h>
+#include <errno.h>
+#define canonicalize_file_name(orig) realpath(orig, NULL)
+#else
 #include <attr/xattr.h>
+#endif
 #include <limits.h>
 #include <dirent.h>
 #include <sys/mman.h>
@@ -212,14 +218,23 @@ mentry_create(const char *path)
 	mentry->owner = xstrdup(pbuf->pw_name);
 	mentry->group = xstrdup(gbuf->gr_name);
 	mentry->mode = sbuf.st_mode & 0177777;
+	#ifdef __MACH__
+	mentry->mtime = sbuf.st_mtimespec.tv_sec;
+	mentry->mtimensec = sbuf.st_mtimespec.tv_nsec;
+	#else
 	mentry->mtime = sbuf.st_mtim.tv_sec;
 	mentry->mtimensec = sbuf.st_mtim.tv_nsec;
+	#endif
 
 	/* symlinks have no xattrs */
 	if (S_ISLNK(mentry->mode))
 		return mentry;
 	
+	#ifdef __MACH__
+	lsize = listxattr(path, NULL, 0, 0);
+	#else
 	lsize = listxattr(path, NULL, 0);
+	#endif
 	if (lsize < 0) {
 		/* Perhaps the FS doesn't support xattrs? */
 		if (errno == ENOTSUP)
@@ -231,7 +246,11 @@ mentry_create(const char *path)
 	}
 
 	list = xmalloc(lsize);
+	#ifdef __MACH__
+	lsize = listxattr(path, list, lsize, 0);
+	#else
 	lsize = listxattr(path, list, lsize);
+	#endif
 	if (lsize < 0) {
 		msg(MSG_ERROR, "listxattr failed for %s: %s\n",
 		    path, strerror(errno));
@@ -258,12 +277,15 @@ mentry_create(const char *path)
 	for (attr = list; attr < list + lsize; attr = strchr(attr, '\0') + 1) {
 		if (*attr == '\0')
 			continue;
-
 		mentry->xattr_names[i] = xstrdup(attr);
+		#ifdef __MACH__
+		vsize = getxattr(path, attr, NULL, 0, 0, 0);
+		#else
 		vsize = getxattr(path, attr, NULL, 0);
+		#endif
 		if (vsize < 0) {
-			msg(MSG_ERROR, "getxattr failed for %s: %s\n",
-			    path, strerror(errno));
+			msg(MSG_ERROR, "getxattr failed to get attribute \"%s\" for %s: %s\n",
+			    attr, path, strerror(errno));
 			free(list);
 			mentry_free(mentry);
 			return NULL;
@@ -272,10 +294,14 @@ mentry_create(const char *path)
 		mentry->xattr_lvalues[i] = vsize;
 		mentry->xattr_values[i] = xmalloc(vsize);
 
+		#ifdef __MACH__
+		vsize = getxattr(path, attr, mentry->xattr_values[i], vsize, 0, 0);
+		#else
 		vsize = getxattr(path, attr, mentry->xattr_values[i], vsize);
+		#endif
 		if (vsize < 0) {
-			msg(MSG_ERROR, "getxattr failed for %s: %s\n",
-			    path, strerror(errno));
+			msg(MSG_ERROR, "getxattr failed to get attribute \"%s\" for %s: %s\n",
+			    attr, path, strerror(errno));
 			free(list);
 			mentry_free(mentry);
 			return NULL;

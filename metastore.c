@@ -23,7 +23,14 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <utime.h>
+#ifdef __MACH__
+#include <sys/xattr.h>
+#include <errno.h>
+#define lsetxattr(path, name, value, size, options)  setxattr(path, name, value, size, 0, options | XATTR_NOFOLLOW)
+#define lremovexattr(path, name) removexattr(path, name, XATTR_NOFOLLOW)
+#else
 #include <attr/xattr.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
