@@ -18,16 +18,16 @@
 # Generic settings
 #
 CC              = gcc
-CFLAGS          = -g -Wall -pedantic -std=c99 -D_FILE_OFFSET_BITS=64 -O2
+LOCAL_CFLAGS    = $(CFLAGS) -g -Wall -pedantic -std=c99 -D_FILE_OFFSET_BITS=64 -O2
 LDFLAGS         =
 INCLUDES        =
 INSTALL         = install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA    = ${INSTALL} -m 644
-COMPILE         = $(CC) $(INCLUDES) $(CFLAGS)
-LINK            = $(CC) $(CFLAGS) $(LDFLAGS)
+COMPILE         = $(CC) $(INCLUDES) $(LOCAL_CFLAGS)
+LINK            = $(CC) $(LOCAL_CFLAGS) $(LDFLAGS)
 OBJECTS         = utils.o metastore.o metaentry.o
-HEADERS         = utils.h metastore.h metaentry.h
+HEADERS         = utils.h metastore.h metaentry.h freebsd.h
 
 DESTDIR        ?=
 prefix         	= /usr

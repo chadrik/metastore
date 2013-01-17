@@ -1,0 +1,10 @@
+Support for FreeBSD extended attributes
+=======================================
+
+The support for FreeBSD extended attributes is limited to one namespace at the
+moment, configurable at compile time by either:
+- Editing the header file "freebsd.h", altering the line #define NAMESPACE
+  value
+- Calling gmake with CFLAGS=-DNAMESPACE=value
+
+See extattr(9) for a list of acceptable values.
