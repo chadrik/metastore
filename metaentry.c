@@ -25,13 +25,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #ifdef __MACH__
 #include <sys/xattr.h>
 #include <errno.h>
 #define canonicalize_file_name(orig) realpath(orig, NULL)
+#elif defined __FreeBSD__
+#include "freebsd.h"
 #else
 #include <attr/xattr.h>
 #endif
+
 #include <limits.h>
 #include <dirent.h>
 #include <sys/mman.h>
